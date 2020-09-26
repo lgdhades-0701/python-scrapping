@@ -3,7 +3,6 @@ from datetime import datetime
 from datetime import date
 from datetime import timedelta
 from bs4 import BeautifulSoup
-import requests
 import os.path
 from env import Env
 import csv
@@ -28,7 +27,7 @@ if _Year is None:
         _Day = curDate.day
     else:
         if _Month > curDate.month - 1:
-            print 'The inputted month is out the scope.'
+            print ('The inputted month is out the scope.')
             sys.exit()
         elif _Month == curDate.month - 1:
             _Day = curDate.day
@@ -36,7 +35,7 @@ if _Year is None:
             _Day = calendar.monthrange(_Year, _Month + 1)[1]
 else:
     if _Year > curDate.year:
-        print 'The inputted year is out the scope.'
+        print ('The inputted year is out the scope.')
         sys.exit()
     elif _Year == curDate.year:
         if _Month is None:
@@ -44,7 +43,7 @@ else:
             _Day = curDate.day
         else:
             if _Month > curDate.month - 1:
-                print 'The inputted month is out the scope.'
+                print ('The inputted month is out the scope.')
                 sys.exit()
             elif _Month == curDate.month - 1:
                 _Day = curDate.day
@@ -57,7 +56,7 @@ else:
         else:
             _Day = calendar.monthrange(_Year, _Month + 1)[1]
 
-print _Year, _Month, _Day, _BackDate
+print (_Year, _Month, _Day, _BackDate)
 logFileName = str(_Year) + str(_Month) + str(_Day)
 _logFile = Env._LogPath + "\\" + logFileName
 
@@ -110,7 +109,7 @@ def getResultList():
         else :
             if _BackDate > _Day :
                 start_date = 1
-                print 'You entered a backdate bigger than the current date. Scrapping from on 1st.'
+                print ('You entered a backdate bigger than the current date. Scrapping from on 1st.')
             else :
                 start_date = _Day - _BackDate + 1
 
@@ -125,16 +124,16 @@ def getResultList():
         }
         response = requests.request("POST", url, headers=headers, data=payload)
         meetingResults = json.loads(response.text.encode('utf8'))
-        content_uni = meetingResults.values()[0]
+        content_uni = list(meetingResults.values())[0]
         content = json.loads(content_uni.encode('utf-8'))
         if content == False :
             return
         for i in content :
-            itemList = i.values()
-            item_date = itemList[8].replace("u'", "'")
-            item_racecorse = itemList[0].replace("u'", "'")
-            item_club = itemList[3].replace("u'", "'")
-            item_id = itemList[7]
+            itemList = list(i.values())
+            item_date = itemList[1]
+            item_racecorse = itemList[4]
+            item_club = itemList[3]
+            item_id = itemList[2]
             str_comp = item_date[-3:]
             if MonthList[_Month] == str_comp :
                 objResultList = ResultList()
@@ -143,8 +142,8 @@ def getResultList():
                 objResultList.club = item_club
                 objResultList.date = item_date
                 resultList.append(objResultList)
-    except Exception, e:
-        print e
+    except Exception as e:
+        print (e)
         exceptionFile = open(_logFile, "w+")
         exceptionFile.write(str(e))
         exceptionFile.close()
@@ -155,7 +154,7 @@ def getMainContent(id, meeting, dobj):
     csv_date = datetime.strftime(dobj, "%d/%m/%Y")
     csv_meeting = meeting
     url = 'https://loveracing.nz/RaceInfo/' + id + '/Meeting-Overview.aspx'
-    print 'get data from ' + url
+    print ('get data from ' + url)
     try:
         resultList = []
         page = requests.get(url)
@@ -181,7 +180,7 @@ def getMainContent(id, meeting, dobj):
                 clas = clas + ' ' + item_array[k]
             time=subinfo[4].text
             plc_url = 'https://loveracing.nz/RaceInfo/' + id + '/' + str(i+1) + '/Race-Detail.aspx'
-            print plc_url
+            print (plc_url)
             plc_page = requests.get(plc_url)
             plc_soup = BeautifulSoup(plc_page.content, "html.parser")
             plc_info = plc_soup.find("ul", id="sectionals")
@@ -218,26 +217,26 @@ def getMainContent(id, meeting, dobj):
                     objResult.l200 = plc.find_all("div")[4].text
                     resultList.append(objResult)
         return resultList
-    except Exception, e:
-        print e
+    except Exception as e:
+        print (e)
         exceptionFile = open(_logFile, "a")
         exceptionFile.write(str(e))
         exceptionFile.close()
 
 
 def main():
-    print 'start .....'
+    print ('start .....')
     header = ['DATE', 'MEETING', 'RACE', 'START', 'CLASS', 'DIS', 'PRISE', 'PLC', 'NUMBER', 'HORSE', 'STAKE',
               'F400', 'L800', 'L600', 'L400', 'L200', 'TIME']
-    results = getResultList();
+    results = getResultList()
     for i in range(0, results.__len__()):
         result = results[i]
         datestr = result.date[4:] + ' ' + str(_Year)
         dateobj = datetime.strptime(datestr, '%d %b %Y')
         csvname = result.racecorse + datetime.strftime(dateobj, "%d%m%Y")
-        print csvname + '.csv is creating ...'
+        print (csvname + '.csv is creating ...')
         try:
-            with open(_OutputCsvPath + "\\" + csvname + '.csv', 'wb') as csvfile:
+            with open(_OutputCsvPath + "\\" + csvname + '.csv', 'w', newline='') as csvfile:
                 outputwriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
                 outputwriter.writerow(header)
 
@@ -262,15 +261,14 @@ def main():
                     oneRow.append(content.l400.replace(",", "").replace("\r", "").replace("\n", "").strip())
                     oneRow.append(content.l200.replace(",", "").replace("\r", "").replace("\n", "").strip())
                     oneRow.append(content.time.replace(",", "").replace("\r", "").replace("\n", "").strip())
-                    encodedRow = [text.encode("cp1252") for text in oneRow]
-                    outputwriter.writerow(encodedRow)
-        except Exception, e:
-            print e
+                    outputwriter.writerow(oneRow)
+        except Exception as e:
+            print (e)
             exceptionFile = open(_logFile, "a")
             exceptionFile.write(str(e))
             exceptionFile.close()
-        print 'One file created!'
-    print 'end'
+        print ('One file created!')
+    print ('end')
 
 
 main();
